@@ -9,7 +9,7 @@ interface SpiralVortexProps {
   contributions: NormalizedContribution[];
 }
 
-// Vertex Shader - handles pulsing motion and intensity-based sizing
+// Vertex Shader - handles pulsing motion, intensity boosting, and sizing
 const vertexShader = `
   attribute float intensity;
   
@@ -18,7 +18,9 @@ const vertexShader = `
   uniform float uTime;
   
   void main() {
-    vIntensity = intensity;
+    // Boost intensity so more values reach bright white threshold
+    float boostedIntensity = smoothstep(0.1, 0.6, intensity);
+    vIntensity = boostedIntensity;
     
     // Apply pulsing motion based on uTime and position.z
     vec3 pos = position;
@@ -28,23 +30,32 @@ const vertexShader = `
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
     gl_Position = projectionMatrix * mvPosition;
     
-    // Set point size based on intensity - significantly increased
-    gl_PointSize = 6.0 + (intensity * 8.0);
+    // Set point size based on boosted intensity
+    gl_PointSize = 6.0 + (boostedIntensity * 8.0);
   }
 `;
 
-// Fragment Shader - intensity-based gradient coloring (blood-red theme)
+// Fragment Shader - monochromatic deep-space theme with soft particles
 const fragmentShader = `
   varying float vIntensity;
   
   void main() {
-    // Blend between dark black-red (low intensity) and bright blood red (high intensity)
-    vec3 darkRed = vec3(0.15, 0.0, 0.05);
-    vec3 brightRed = vec3(0.9, 0.0, 0.0);
-    vec3 color = mix(darkRed, brightRed, vIntensity);
+    // Calculate distance from center of point
+    vec2 center = gl_PointCoord - vec2(0.5);
+    float dist = length(center);
     
-    // Add some glow effect
-    float alpha = 1.0 - length(gl_PointCoord - vec2(0.5)) * 2.0;
+    // Discard pixels outside the circle (0.5 radius)
+    if (dist > 0.5) {
+      discard;
+    }
+    
+    // Blend between dark gray (low intensity) and pure white (high intensity)
+    vec3 darkGray = vec3(0.1, 0.1, 0.1);
+    vec3 brightWhite = vec3(1.0, 1.0, 1.0);
+    vec3 color = mix(darkGray, brightWhite, vIntensity);
+    
+    // Soft edge with smooth falloff from center to edge
+    float alpha = 1.0 - (dist * 2.0);  // Smooth gradient from 1.0 at center to 0.0 at edge
     
     gl_FragColor = vec4(color, alpha);
   }

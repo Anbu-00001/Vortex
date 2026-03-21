@@ -2,6 +2,7 @@
 
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import SpiralVortex from './SpiralVortex';
 import { NormalizedContribution } from '../../lib/graphql/queries';
 
@@ -15,9 +16,12 @@ export default function VortexCanvas({ contributions }: VortexCanvasProps) {
       <ambientLight intensity={0.5} />
       <directionalLight position={[10, 10, 5]} intensity={1} />
       <OrbitControls />
-      {contributions && contributions.length > 0 && (
-        <SpiralVortex contributions={contributions} />
-      )}
+      
+      <EffectComposer>
+        <SpiralVortex contributions={contributions || []} />
+        <Bloom intensity={1.5} luminanceThreshold={0.2} mipmapBlur={true} />
+      </EffectComposer>
+      
       {!contributions && (
         <mesh position={[0, 0, 0]}>
           <sphereGeometry args={[1, 32, 32]} />
