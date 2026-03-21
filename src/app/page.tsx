@@ -1,4 +1,5 @@
 import VortexCanvas from '@/components/3d/VortexCanvas';
+import VortexControls from '@/components/ui/VortexControls';
 import { getNormalizedContributions, NormalizedContribution } from '@/lib/graphql/queries';
 
 export default async function HomePage() {
@@ -39,8 +40,9 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="w-screen h-screen bg-black overflow-hidden">
+    <div className="w-screen h-screen bg-black overflow-hidden relative">
       <VortexCanvas contributions={contributions} />
+      <VortexControls />
     </div>
   );
 }
