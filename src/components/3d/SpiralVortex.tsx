@@ -21,8 +21,8 @@ export default function SpiralVortex({
   k = 2.0,
   w = 0.1,
   h = 0.05,
-  pointSize = 0.02,
-  pointColor = '#00ff88'
+  pointSize = 0.5,
+  pointColor = '#00ff00'
 }: SpiralVortexProps) {
   const pointsRef = useRef<THREE.Points>(null);
 
@@ -76,10 +76,11 @@ export default function SpiralVortex({
       </bufferGeometry>
       <pointsMaterial
         size={pointSize}
+        color={pointColor}
         vertexColors
         transparent
         alphaTest={0.001}
-        sizeAttenuation={false}
+        sizeAttenuation={true}
       />
     </points>
   );

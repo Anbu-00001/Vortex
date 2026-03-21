@@ -11,7 +11,7 @@ interface VortexCanvasProps {
 
 export default function VortexCanvas({ contributions }: VortexCanvasProps) {
   return (
-    <Canvas style={{ width: '100vw', height: '100vh' }}>
+    <Canvas style={{ width: '100vw', height: '100vh' }} camera={{ position: [0, 0, 60], fov: 75 }}>
       <ambientLight intensity={0.5} />
       <directionalLight position={[10, 10, 5]} intensity={1} />
       <OrbitControls />
