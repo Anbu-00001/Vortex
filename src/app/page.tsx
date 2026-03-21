@@ -1,52 +1,17 @@
-"use client";
-
-import { useEffect, useState } from 'react';
 import VortexCanvas from '@/components/3d/VortexCanvas';
 import { getNormalizedContributions, NormalizedContribution } from '@/lib/graphql/queries';
 
-// Force dynamic rendering to avoid build-time GraphQL calls
-export const dynamic = 'force-dynamic';
+export default async function HomePage() {
+  let contributions: NormalizedContribution[] = [];
+  let error: string | null = null;
 
-export default function HomePage() {
-  const [contributions, setContributions] = useState<NormalizedContribution[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchContributions = async () => {
-      try {
-        setLoading(true);
-        // Test with a sample GitHub username - you can change this
-        const data = await getNormalizedContributions('torvalds', 2020, 2024);
-        console.log('Day 2 Data Test:', data);
-        setContributions(data);
-      } catch (err) {
-        console.error('Failed to fetch contributions:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchContributions();
-  }, []);
-
-  if (loading) {
-    return (
-      <div style={{
-        width: '100vw',
-        height: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#000',
-        color: '#00ff88',
-        fontFamily: 'monospace',
-        fontSize: '24px'
-      }}>
-        Initializing Vortex Engine...
-      </div>
-    );
+  try {
+    // Server-side data fetching - GITHUB_TOKEN is securely available here
+    contributions = await getNormalizedContributions('torvalds', 2020, 2024);
+    console.log('Day 2 Data Test (Server-side):', contributions);
+  } catch (err) {
+    console.error('Failed to fetch contributions on server:', err);
+    error = err instanceof Error ? err.message : 'Unknown error';
   }
 
   if (error) {
@@ -67,7 +32,7 @@ export default function HomePage() {
         Vortex Engine Error: {error}
         <br />
         <small style={{ fontSize: '14px', color: '#888' }}>
-          Check console for details and ensure GITHUB_TOKEN is set
+          Check server logs and ensure GITHUB_TOKEN is set in .env.local
         </small>
       </div>
     );
