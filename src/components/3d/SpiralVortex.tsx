@@ -1,34 +1,68 @@
 "use client";
 
 import { useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { NormalizedContribution } from '../../lib/graphql/queries';
 
 interface SpiralVortexProps {
   contributions: NormalizedContribution[];
-  // Default constants for the logarithmic spiral
-  a?: number; // Base radius multiplier
-  k?: number; // Intensity scaling factor
-  w?: number; // Angular frequency (radians per day)
-  h?: number; // Height per day
-  pointSize?: number;
-  pointColor?: string;
 }
 
-export default function SpiralVortex({
-  contributions,
-  a = 0.5,
-  k = 2.0,
-  w = 0.1,
-  h = 0.05,
-  pointSize = 0.5,
-  pointColor = '#00ff00'
-}: SpiralVortexProps) {
-  const pointsRef = useRef<THREE.Points>(null);
+// Vertex Shader - handles pulsing motion and intensity-based sizing
+const vertexShader = `
+  attribute float intensity;
+  
+  varying float vIntensity;
+  
+  uniform float uTime;
+  
+  void main() {
+    vIntensity = intensity;
+    
+    // Apply pulsing motion based on uTime and position.z
+    vec3 pos = position;
+    pos.x += sin(uTime * 2.0 + position.z) * 0.5;
+    pos.y += cos(uTime * 2.0 + position.z) * 0.5;
+    
+    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+    gl_Position = projectionMatrix * mvPosition;
+    
+    // Set point size based on intensity
+    gl_PointSize = 3.0 + (intensity * 3.0);
+  }
+`;
 
-  const { positions, colors } = useMemo(() => {
+// Fragment Shader - intensity-based gradient coloring
+const fragmentShader = `
+  varying float vIntensity;
+  
+  void main() {
+    // Blend between dark green (low intensity) and neon green (high intensity)
+    vec3 darkGreen = vec3(0.0, 0.2, 0.0);
+    vec3 neonGreen = vec3(0.0, 1.0, 0.0);
+    vec3 color = mix(darkGreen, neonGreen, vIntensity);
+    
+    // Add some glow effect
+    float alpha = 1.0 - length(gl_PointCoord - vec2(0.5)) * 2.0;
+    
+    gl_FragColor = vec4(color, alpha);
+  }
+`;
+
+export default function SpiralVortex({ contributions }: SpiralVortexProps) {
+  const pointsRef = useRef<THREE.Points>(null);
+  const shaderMaterialRef = useRef<THREE.ShaderMaterial>(null);
+
+  // Updated constants for better spiral expansion
+  const a = 2.0;  // Base radius multiplier
+  const k = 0.5;  // Intensity scaling factor
+  const w = 0.15; // Angular frequency
+  const h = 0.05; // Height per day
+
+  const { positions, intensities } = useMemo(() => {
     const positions = new Float32Array(contributions.length * 3);
-    const colors = new Float32Array(contributions.length * 3);
+    const intensities = new Float32Array(contributions.length);
 
     contributions.forEach((contribution, index) => {
       const { dayIndex, normalizedIntensity } = contribution;
@@ -36,27 +70,34 @@ export default function SpiralVortex({
       // Calculate spiral position using logarithmic equations
       const radius = a * Math.log(1 + dayIndex) + (k * normalizedIntensity);
       const theta = w * dayIndex;
-      const height = h * dayIndex;
+      const z = h * dayIndex;
 
       // Convert to Cartesian coordinates
       const x = radius * Math.cos(theta);
       const y = radius * Math.sin(theta);
-      const z = height;
 
       // Set position
       positions[index * 3] = x;
       positions[index * 3 + 1] = y;
       positions[index * 3 + 2] = z;
 
-      // Set color based on intensity (brighter for higher intensity)
-      const intensity = Math.max(0.2, normalizedIntensity); // Minimum brightness
-      colors[index * 3] = intensity; // R
-      colors[index * 3 + 1] = 1.0; // G
-      colors[index * 3 + 2] = intensity * 0.5; // B
+      // Store intensity for shader
+      intensities[index] = normalizedIntensity;
     });
 
-    return { positions, colors };
-  }, [contributions, a, k, w, h]);
+    return { positions, intensities };
+  }, [contributions]);
+
+  // Animation frame loop for pulsing and rotation
+  useFrame((state, delta) => {
+    if (shaderMaterialRef.current) {
+      shaderMaterialRef.current.uniforms.uTime.value = state.clock.getElapsedTime();
+    }
+
+    if (pointsRef.current) {
+      pointsRef.current.rotation.y += delta * 0.1;
+    }
+  });
 
   return (
     <points ref={pointsRef}>
@@ -68,19 +109,21 @@ export default function SpiralVortex({
           itemSize={3}
         />
         <bufferAttribute
-          attach="attributes-color"
-          count={colors.length / 3}
-          array={colors}
-          itemSize={3}
+          attach="attributes-intensity"
+          count={intensities.length}
+          array={intensities}
+          itemSize={1}
         />
       </bufferGeometry>
-      <pointsMaterial
-        size={pointSize}
-        color={pointColor}
-        vertexColors
+      <shaderMaterial
+        ref={shaderMaterialRef}
+        vertexShader={vertexShader}
+        fragmentShader={fragmentShader}
+        uniforms={{
+          uTime: { value: 0.0 }
+        }}
         transparent
-        alphaTest={0.001}
-        sizeAttenuation={true}
+        side={THREE.DoubleSide}
       />
     </points>
   );

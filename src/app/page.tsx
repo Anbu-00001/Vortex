@@ -7,7 +7,7 @@ export default async function HomePage() {
 
   try {
     // Server-side data fetching - GITHUB_TOKEN is securely available here
-    contributions = await getNormalizedContributions('torvalds', 2020, 2024);
+    contributions = await getNormalizedContributions('Anbu-00001', 2020, 2024);
     console.log('Day 2 Data Test (Server-side):', contributions);
   } catch (err) {
     console.error('Failed to fetch contributions on server:', err);
