@@ -1,5 +1,5 @@
 import { gql } from 'graphql-request';
-import { client } from './client';
+import { getClient } from './client';
 
 // TypeScript Interfaces
 
@@ -63,7 +63,7 @@ export async function fetchContributionsForYear(
   const to = new Date(year, 11, 31).toISOString(); // December 31st
 
   try {
-    const response: GitHubResponse = await client.request(GET_CONTRIBUTIONS_QUERY, {
+    const response: GitHubResponse = await getClient().request(GET_CONTRIBUTIONS_QUERY, {
       userName,
       from,
       to,
