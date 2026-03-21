@@ -28,20 +28,20 @@ const vertexShader = `
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
     gl_Position = projectionMatrix * mvPosition;
     
-    // Set point size based on intensity
-    gl_PointSize = 3.0 + (intensity * 3.0);
+    // Set point size based on intensity - significantly increased
+    gl_PointSize = 6.0 + (intensity * 8.0);
   }
 `;
 
-// Fragment Shader - intensity-based gradient coloring
+// Fragment Shader - intensity-based gradient coloring (blood-red theme)
 const fragmentShader = `
   varying float vIntensity;
   
   void main() {
-    // Blend between dark green (low intensity) and neon green (high intensity)
-    vec3 darkGreen = vec3(0.0, 0.2, 0.0);
-    vec3 neonGreen = vec3(0.0, 1.0, 0.0);
-    vec3 color = mix(darkGreen, neonGreen, vIntensity);
+    // Blend between dark black-red (low intensity) and bright blood red (high intensity)
+    vec3 darkRed = vec3(0.15, 0.0, 0.05);
+    vec3 brightRed = vec3(0.9, 0.0, 0.0);
+    vec3 color = mix(darkRed, brightRed, vIntensity);
     
     // Add some glow effect
     float alpha = 1.0 - length(gl_PointCoord - vec2(0.5)) * 2.0;
@@ -88,14 +88,11 @@ export default function SpiralVortex({ contributions }: SpiralVortexProps) {
     return { positions, intensities };
   }, [contributions]);
 
-  // Animation frame loop for pulsing and rotation
-  useFrame((state, delta) => {
+  // Animation frame loop - pulsing only, no auto-rotation
+  useFrame((state) => {
     if (shaderMaterialRef.current) {
+      // Update shader time uniform for pulsing effect only
       shaderMaterialRef.current.uniforms.uTime.value = state.clock.getElapsedTime();
-    }
-
-    if (pointsRef.current) {
-      pointsRef.current.rotation.y += delta * 0.1;
     }
   });
 
